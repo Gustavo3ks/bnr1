@@ -97,14 +97,7 @@ class _RegistrarRetornoState extends State<RegistrarRetorno> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const LinearProgressIndicator(
-                value: 1 / 3,
-                minHeight: 4,
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-                color: Color(0xFF2864D7),
-                backgroundColor: Color(0xFFE6EBF0),
-              ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
               const Text(
                 'Fotografe a nota de retorno',
                 style: TextStyle(

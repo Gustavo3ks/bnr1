@@ -9,7 +9,6 @@ import 'telas_navegacao.dart';
 
 const _navy = Color(0xFF123B63);
 const _blue = Color(0xFF2864D7);
-const _background = Color(0xFFF7F8FA);
 const _muted = Color(0xFF748396);
 
 class Home extends StatefulWidget {
@@ -44,35 +43,26 @@ class _HomeState extends State<Home> {
         _retornosRegistrados = retornos;
       });
     } catch (_) {
-      // Mantém o protótipo navegável em plataformas sem suporte ao SQLite nativo.
+      // As listas continuam acessíveis mesmo se o banco local não iniciar.
     }
   }
 
-  Future<void> _openReturnFlow() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const RegistrarRetorno()));
+  Future<void> _abrirRegistro() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const RegistrarRetorno()),
+    );
     await _carregarPainel();
   }
 
   void _selecionarAba(int index) {
     setState(() => _selectedIndex = index);
-    if (index == 2) unawaited(_carregarPainel());
   }
 
   @override
   Widget build(BuildContext context) {
-    final paginas = [
-      _paginaInicio(),
-      const EquipamentosPage(),
-      const ManutencoesPage(),
-      const MaisPage(),
-    ];
     return Scaffold(
-      backgroundColor: _background,
-      body: SafeArea(
-        child: IndexedStack(index: _selectedIndex, children: paginas),
-      ),
+      backgroundColor: const Color(0xFFF7F8FA),
+      body: SafeArea(child: _paginaSelecionada()),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _selecionarAba,
@@ -86,187 +76,74 @@ class _HomeState extends State<Home> {
             label: 'Equipamentos',
           ),
           NavigationDestination(
-            icon: Icon(Icons.sync_outlined),
+            icon: Icon(Icons.build_outlined),
             label: 'Manutenções',
           ),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: 'Mais'),
         ],
       ),
     );
+  }
+
+  Widget _paginaSelecionada() {
+    switch (_selectedIndex) {
+      case 1:
+        return const EquipamentosPage();
+      case 2:
+        return const ManutencoesPage();
+      default:
+        return _paginaInicio();
+    }
   }
 
   Widget _paginaInicio() {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
       children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Olá, equipe',
-                    style: TextStyle(
-                      color: Color(0xFF152536),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'Controle de manutenção',
-                    style: TextStyle(color: _muted, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            const CircleAvatar(
-              radius: 24,
-              backgroundColor: Color(0xFFEAF1FC),
-              child: Text(
-                'CM',
-                style: TextStyle(color: _navy, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 26),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: _navy,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'EM MANUTENÇÃO',
-                      style: TextStyle(
-                        color: Color(0xFFD9E8F5),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _manutencoesAtivas.length.toString().padLeft(2, '0'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 42,
-                        height: 1,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Equipamentos sob acompanhamento',
-                      style: TextStyle(color: Color(0xFFD9E8F5), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const CircleAvatar(
-                radius: 36,
-                backgroundColor: Color(0xFF28567F),
-                child: Icon(
-                  Icons.build_outlined,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Retornados',
-                value: _retornosRegistrados.toString().padLeft(2, '0'),
-                detail: 'registrados',
-                icon: Icons.check_circle_outline,
-                color: const Color(0xFF18825B),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: _StatCard(
-                title: 'Pendentes',
-                value: _manutencoesAtivas.length.toString().padLeft(2, '0'),
-                detail: 'aguardando baixa',
-                icon: Icons.schedule_outlined,
-                color: const Color(0xFF9A6513),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 28),
         const Text(
-          'Ação rápida',
+          'Controle de manutenção',
           style: TextStyle(
             color: Color(0xFF152536),
-            fontSize: 16,
+            fontSize: 22,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 12),
-        Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          child: InkWell(
-            onTap: _openReturnFlow,
-            borderRadius: BorderRadius.circular(18),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEAF1FC),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.photo_camera_outlined,
-                      color: _blue,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Registrar retorno',
-                          style: TextStyle(
-                            color: Color(0xFF152536),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Fotografar nota de retorno',
-                          style: TextStyle(color: _muted, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: _muted),
-                ],
+        const SizedBox(height: 6),
+        const Text(
+          'Registre o retorno usando a foto da nota.',
+          style: TextStyle(color: _muted, fontSize: 14),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            Expanded(
+              child: _Indicador(
+                titulo: 'Em manutenção',
+                valor: _manutencoesAtivas.length.toString(),
               ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _Indicador(
+                titulo: 'Retornos registrados',
+                valor: _retornosRegistrados.toString(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: _abrirRegistro,
+          icon: const Icon(Icons.photo_camera_outlined),
+          label: const Text('Registrar retorno'),
+          style: FilledButton.styleFrom(
+            backgroundColor: _blue,
+            minimumSize: const Size.fromHeight(54),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
             ),
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 26),
         Row(
           children: [
             const Expanded(
@@ -285,166 +162,101 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
-        const SizedBox(height: 6),
         if (_manutencoesRecentes.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 18),
+            padding: EdgeInsets.symmetric(vertical: 12),
             child: Text(
               'Nenhuma manutenção registrada.',
               style: TextStyle(color: _muted, fontSize: 13),
             ),
           )
         else
-          ..._manutencoesRecentes.map((manutencao) {
-            final concluida = manutencao.status == 'Concluída';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _MaintenanceTile(
-                icon: concluida
-                    ? Icons.check_circle_outline
-                    : Icons.build_outlined,
-                title: manutencao.equipamento,
-                detail: 'OS ${manutencao.numeroOs} · ${manutencao.status}',
-                status: concluida ? 'CONCLUÍDA' : 'PENDENTE',
-                statusColor: concluida
-                    ? const Color(0xFF18825B)
-                    : const Color(0xFF9A6513),
-                statusBackground: concluida
-                    ? const Color(0xFFE8F5EF)
-                    : const Color(0xFFFFF3DA),
-              ),
-            );
-          }),
+          ..._manutencoesRecentes.map(
+            (manutencao) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ResumoManutencao(manutencao: manutencao),
+            ),
+          ),
       ],
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.detail,
-    required this.icon,
-    required this.color,
-  });
-  final String title;
-  final String value;
-  final String detail;
-  final IconData icon;
-  final Color color;
+class _Indicador extends StatelessWidget {
+  const _Indicador({required this.titulo, required this.valor});
+  final String titulo;
+  final String valor;
+
   @override
   Widget build(BuildContext context) => Container(
-    constraints: const BoxConstraints(minHeight: 112),
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       border: Border.all(color: const Color(0xFFE6EBF0)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(color: _muted, fontSize: 12),
-              ),
-            ),
-            Icon(icon, color: color, size: 18),
-          ],
-        ),
+        Text(titulo, style: const TextStyle(color: _muted, fontSize: 12)),
         const SizedBox(height: 6),
         Text(
-          value,
+          valor,
           style: const TextStyle(
-            color: Color(0xFF152536),
-            fontSize: 26,
+            color: _navy,
+            fontSize: 24,
             fontWeight: FontWeight.w700,
           ),
         ),
-        Text(detail, style: const TextStyle(color: _muted, fontSize: 10)),
       ],
     ),
   );
 }
 
-class _MaintenanceTile extends StatelessWidget {
-  const _MaintenanceTile({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.status,
-    required this.statusColor,
-    required this.statusBackground,
-  });
-  final IconData icon;
-  final String title;
-  final String detail;
-  final String status;
-  final Color statusColor;
-  final Color statusBackground;
+class _ResumoManutencao extends StatelessWidget {
+  const _ResumoManutencao({required this.manutencao});
+  final Manutencao manutencao;
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE6EBF0)),
-    ),
-    child: Row(
-      children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: const Color(0xFFF0F3F7),
-          child: Icon(icon, color: _navy, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF152536),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+  Widget build(BuildContext context) {
+    final concluida = manutencao.status == 'Concluída';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE6EBF0)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            concluida ? Icons.check_circle_outline : Icons.build_outlined,
+            color: concluida ? const Color(0xFF18825B) : _navy,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  manutencao.equipamento,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF152536),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                detail,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: _muted, fontSize: 10),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: statusBackground,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-            child: Text(
-              status,
-              style: TextStyle(
-                color: statusColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-              ),
+                const SizedBox(height: 3),
+                Text(
+                  'OS ${manutencao.numeroOs} · ${manutencao.status}',
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

@@ -199,14 +199,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
           children: [
-            const LinearProgressIndicator(
-              value: 2 / 3,
-              minHeight: 4,
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-              color: Color(0xFF2864D7),
-              backgroundColor: Color(0xFFE6EBF0),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             if (camposAusentes.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(14),
@@ -282,7 +275,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
             CampoNota(
               label: 'Observação',
               controller: _observacaoController,
-              maxLines: 3,
+              maxLines: 2,
             ),
             const SizedBox(height: 20),
             const Text(

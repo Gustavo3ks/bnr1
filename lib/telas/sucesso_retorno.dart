@@ -28,8 +28,15 @@ class SucessoRetorno extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
           children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 64,
+              color: Color(0xFF18825B),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Retorno registrado!',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFF152536),
                 fontSize: 22,
@@ -38,88 +45,44 @@ class SucessoRetorno extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'Nota registrada e manutenção baixada.',
-              style: TextStyle(color: Color(0xFF748396), fontSize: 13),
-            ),
-            const SizedBox(height: 38),
-            const CircleAvatar(
-              radius: 50,
-              backgroundColor: Color(0xFFE8F5EF),
-              child: Icon(
-                Icons.check_rounded,
-                size: 56,
-                color: Color(0xFF18825B),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'A manutenção foi encerrada com sucesso.',
+              'A nota foi registrada e a manutenção foi baixada.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF748396), fontSize: 14),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFE6EBF0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Nº DO RETORNO',
-                    style: TextStyle(
-                      color: Color(0xFF748396),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    protocolo,
-                    style: const TextStyle(
-                      color: Color(0xFF152536),
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  _ResumoItem(label: 'Protocolo', valor: protocolo),
                   const Divider(height: 24),
                   _ResumoItem(label: 'OS', valor: numeroOs),
                   const SizedBox(height: 12),
-                  _ResumoItem(label: 'CLIENTE', valor: cliente),
+                  _ResumoItem(label: 'Cliente', valor: cliente),
                   const SizedBox(height: 12),
-                  _ResumoItem(label: 'EQUIPAMENTO', valor: equipamento),
+                  _ResumoItem(label: 'Equipamento', valor: equipamento),
                   const SizedBox(height: 12),
-                  _ResumoItem(label: 'SERVIÇO REALIZADO', valor: servico),
+                  _ResumoItem(label: 'Serviço realizado', valor: servico),
                 ],
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 22),
             FilledButton(
               onPressed: () => _voltarInicio(context),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF2864D7),
-                minimumSize: const Size.fromHeight(56),
+                minimumSize: const Size.fromHeight(54),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
               child: const Text('Voltar ao início'),
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: () => _voltarInicio(context),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF2864D7),
-                minimumSize: const Size.fromHeight(52),
-                side: const BorderSide(color: Color(0xFFD6E3EF)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text('Ver manutenção baixada'),
             ),
           ],
         ),
@@ -130,33 +93,26 @@ class SucessoRetorno extends StatelessWidget {
 
 class _ResumoItem extends StatelessWidget {
   const _ResumoItem({required this.label, required this.valor});
-
   final String label;
   final String valor;
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF748396),
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-          ),
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(color: Color(0xFF748396), fontSize: 12),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        valor,
+        style: const TextStyle(
+          color: Color(0xFF152536),
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(height: 4),
-        Text(
-          valor,
-          style: const TextStyle(
-            color: Color(0xFF152536),
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 }
