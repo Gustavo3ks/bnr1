@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
-import '../model/manutencao.dart';
+import '../model/pedido_servico.dart';
 import 'registrar_retorno.dart';
 import 'telas_navegacao.dart';
 
@@ -21,8 +21,8 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int _selectedIndex = 0;
   int _retornosRegistrados = 0;
-  List<Manutencao> _manutencoesAtivas = [];
-  List<Manutencao> _manutencoesRecentes = [];
+  List<PedidoServico> _pedidosAtivas = [];
+  List<PedidoServico> _pedidosRecentes = [];
 
   @override
   void initState() {
@@ -33,17 +33,18 @@ class _HomeState extends State<Home> {
   Future<void> _carregarPainel() async {
     try {
       final database = DatabaseHelper.instance;
-      final ativas = await database.obterManutencoesAtivas();
-      final recentes = await database.obterManutencoesRecentes(limite: 4);
+      await database.garantirDadosDemonstracao();
+      final ativas = await database.obterPedidosAtivos();
+      final recentes = await database.obterPedidosRecentes(limite: 4);
       final retornos = await database.contarRetornos();
       if (!mounted) return;
       setState(() {
-        _manutencoesAtivas = ativas;
-        _manutencoesRecentes = recentes;
+        _pedidosAtivas = ativas;
+        _pedidosRecentes = recentes;
         _retornosRegistrados = retornos;
       });
     } catch (_) {
-      // As listas continuam acessíveis mesmo se o banco local não iniciar.
+      // Mantém o painel acessível se a consulta remota falhar.
     }
   }
 
@@ -89,7 +90,7 @@ class _HomeState extends State<Home> {
       case 1:
         return const EquipamentosPage();
       case 2:
-        return const ManutencoesPage();
+        return const PedidosServicoPage();
       default:
         return _paginaInicio();
     }
@@ -117,8 +118,8 @@ class _HomeState extends State<Home> {
           children: [
             Expanded(
               child: _Indicador(
-                titulo: 'Em manutenção',
-                valor: _manutencoesAtivas.length.toString(),
+                titulo: 'Pedidos ativos',
+                valor: _pedidosAtivas.length.toString(),
               ),
             ),
             const SizedBox(width: 12),
@@ -148,7 +149,7 @@ class _HomeState extends State<Home> {
           children: [
             const Expanded(
               child: Text(
-                'Manutenções recentes',
+                'Pedidos de serviço recentes',
                 style: TextStyle(
                   color: Color(0xFF152536),
                   fontSize: 16,
@@ -162,19 +163,19 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
-        if (_manutencoesRecentes.isEmpty)
+        if (_pedidosRecentes.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Nenhuma manutenção registrada.',
+              'Nenhum pedido de serviço registrado.',
               style: TextStyle(color: _muted, fontSize: 13),
             ),
           )
         else
-          ..._manutencoesRecentes.map(
-            (manutencao) => Padding(
+          ..._pedidosRecentes.map(
+            (pedido) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: _ResumoManutencao(manutencao: manutencao),
+              child: _ResumoPedidoServico(pedido: pedido),
             ),
           ),
       ],
@@ -213,13 +214,13 @@ class _Indicador extends StatelessWidget {
   );
 }
 
-class _ResumoManutencao extends StatelessWidget {
-  const _ResumoManutencao({required this.manutencao});
-  final Manutencao manutencao;
+class _ResumoPedidoServico extends StatelessWidget {
+  const _ResumoPedidoServico({required this.pedido});
+  final PedidoServico pedido;
 
   @override
   Widget build(BuildContext context) {
-    final concluida = manutencao.status == 'Concluída';
+    final concluida = pedido.status == 'concluida';
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -239,7 +240,7 @@ class _ResumoManutencao extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  manutencao.equipamento,
+                  pedido.equipamento,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -249,7 +250,7 @@ class _ResumoManutencao extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'OS ${manutencao.numeroOs} · ${manutencao.status}',
+                  'Pedido ${pedido.numeroPedido} · OS ${pedido.numeroOs} · ${pedido.statusLabel}',
                   style: const TextStyle(color: _muted, fontSize: 12),
                 ),
               ],

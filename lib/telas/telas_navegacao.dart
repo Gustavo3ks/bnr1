@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
-import '../model/manutencao.dart';
+import '../model/pedido_servico.dart';
 
 const _muted = Color(0xFF748396);
 const _navy = Color(0xFF123B63);
@@ -13,8 +13,8 @@ class EquipamentosPage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF7F8FA),
     appBar: AppBar(title: const Text('Equipamentos')),
-    body: FutureBuilder<List<Manutencao>>(
-      future: DatabaseHelper.instance.obterManutencoesRecentes(limite: 100),
+    body: FutureBuilder<List<PedidoServico>>(
+      future: DatabaseHelper.instance.obterPedidosRecentes(limite: 100),
       builder: (context, snapshot) {
         if (snapshot.hasError)
           return const _Aviso(
@@ -22,7 +22,7 @@ class EquipamentosPage extends StatelessWidget {
           );
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
-        final unicos = <String, Manutencao>{};
+        final unicos = <String, PedidoServico>{};
         for (final item in snapshot.data!) {
           unicos.putIfAbsent(item.equipamento, () => item);
         }
@@ -37,7 +37,7 @@ class EquipamentosPage extends StatelessWidget {
             return _Linha(
               titulo: item.equipamento,
               detalhe: '${item.cliente} · OS ${item.numeroOs}',
-              status: item.status,
+              status: item.statusLabel,
             );
           },
         );
@@ -46,25 +46,25 @@ class EquipamentosPage extends StatelessWidget {
   );
 }
 
-class ManutencoesPage extends StatelessWidget {
-  const ManutencoesPage({super.key});
+class PedidosServicoPage extends StatelessWidget {
+  const PedidosServicoPage({super.key});
 
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: const Color(0xFFF7F8FA),
-    appBar: AppBar(title: const Text('Manutenções')),
-    body: FutureBuilder<List<Manutencao>>(
-      future: DatabaseHelper.instance.obterManutencoesRecentes(limite: 100),
+    appBar: AppBar(title: const Text('Pedidos de serviço')),
+    body: FutureBuilder<List<PedidoServico>>(
+      future: DatabaseHelper.instance.obterPedidosRecentes(limite: 100),
       builder: (context, snapshot) {
         if (snapshot.hasError)
           return const _Aviso(
-            texto: 'Não foi possível carregar as manutenções.',
+            texto: 'Não foi possível carregar os pedidos de serviço.',
           );
         if (!snapshot.hasData)
           return const Center(child: CircularProgressIndicator());
         final itens = snapshot.data!;
         if (itens.isEmpty)
-          return const _Aviso(texto: 'Nenhuma manutenção registrada.');
+          return const _Aviso(texto: 'Nenhum pedido de serviço registrado.');
         return ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: itens.length,
@@ -72,9 +72,10 @@ class ManutencoesPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = itens[index];
             return _Linha(
-              titulo: 'OS ${item.numeroOs}',
-              detalhe: '${item.equipamento} · ${item.cliente}',
-              status: item.status,
+              titulo: 'Pedido ${item.numeroPedido}',
+              detalhe:
+                  'OS ${item.numeroOs} · ${item.equipamento} · ${item.cliente}',
+              status: item.statusLabel,
             );
           },
         );

@@ -5,6 +5,7 @@ class SucessoRetorno extends StatelessWidget {
     super.key,
     required this.protocolo,
     required this.numeroOs,
+    required this.numeroPedido,
     required this.cliente,
     required this.equipamento,
     required this.servico,
@@ -12,6 +13,7 @@ class SucessoRetorno extends StatelessWidget {
 
   final String protocolo;
   final String numeroOs;
+  final String numeroPedido;
   final String cliente;
   final String equipamento;
   final String servico;
@@ -45,7 +47,7 @@ class SucessoRetorno extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             const Text(
-              'A nota foi registrada e a manutenção foi baixada.',
+              'A nota foi registrada e o pedido de serviço foi baixado.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF748396), fontSize: 14),
             ),
@@ -63,6 +65,8 @@ class SucessoRetorno extends StatelessWidget {
                   _ResumoItem(label: 'Protocolo', valor: protocolo),
                   const Divider(height: 24),
                   _ResumoItem(label: 'OS', valor: numeroOs),
+                  const SizedBox(height: 12),
+                  _ResumoItem(label: 'Pedido', valor: numeroPedido),
                   const SizedBox(height: 12),
                   _ResumoItem(label: 'Cliente', valor: cliente),
                   const SizedBox(height: 12),

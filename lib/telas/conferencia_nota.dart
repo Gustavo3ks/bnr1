@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
-import '../model/manutencao.dart';
+import '../model/pedido_servico.dart';
 import '../model/nota_retorno.dart';
 import '../widgets/campo_nota.dart';
 import 'sucesso_retorno.dart';
@@ -33,10 +33,11 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
   late final TextEditingController _situacaoController;
   late final TextEditingController _observacaoController;
 
-  List<Manutencao> _manutencoes = [];
-  Manutencao? _manutencaoSelecionada;
+  List<PedidoServico> _pedidos = [];
+  PedidoServico? _pedidoSelecionado;
   bool? _equipamentoFuncionando;
-  bool _carregandoManutencoes = true;
+  bool _carregandoPedidos = true;
+  bool _erroCarregamento = false;
   bool _salvando = false;
 
   @override
@@ -51,7 +52,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
     _servicoController = TextEditingController(text: widget.nota.servico);
     _situacaoController = TextEditingController(text: widget.nota.situacao);
     _observacaoController = TextEditingController(text: widget.nota.observacao);
-    unawaited(_carregarManutencoes());
+    unawaited(_carregarPedidos());
   }
 
   @override
@@ -66,18 +67,40 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
     super.dispose();
   }
 
-  Future<void> _carregarManutencoes() async {
-    final manutencoes = await DatabaseHelper.instance.obterManutencoesAtivas();
-    if (!mounted) return;
-    final osLida = _normalizarOs(_osController.text);
-    setState(() {
-      _manutencoes = manutencoes;
-      _manutencaoSelecionada = manutencoes.cast<Manutencao?>().firstWhere(
-        (manutencao) => _normalizarOs(manutencao!.numeroOs) == osLida,
-        orElse: () => null,
-      );
-      _carregandoManutencoes = false;
-    });
+  Future<void> _carregarPedidos() async {
+    try {
+      final pedidos = await DatabaseHelper.instance.obterPedidosAtivos();
+      if (!mounted) return;
+      final osLida = _normalizarOs(_osController.text);
+      final correspondentes = pedidos
+          .where((pedido) => _normalizarOs(pedido.numeroOs) == osLida)
+          .toList();
+      final equipamentoLido = _normalizarCampo(_equipamentoController.text);
+      final correspondentesAoEquipamento = correspondentes
+          .where(
+            (pedido) => _normalizarCampo(pedido.equipamento) == equipamentoLido,
+          )
+          .toList();
+      setState(() {
+        _pedidos = pedidos;
+        _pedidoSelecionado = correspondentesAoEquipamento.length == 1
+            ? correspondentesAoEquipamento.first
+            : correspondentes.length == 1
+            ? correspondentes.first
+            : null;
+        _carregandoPedidos = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _erroCarregamento = true;
+        _carregandoPedidos = false;
+      });
+    }
+  }
+
+  String _normalizarCampo(String valor) {
+    return valor.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   String _normalizarOs(String numeroOs) {
@@ -93,19 +116,21 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
   }
 
   Future<void> _confirmarBaixa() async {
-    if (_carregandoManutencoes || _manutencoes.isEmpty) {
-      _mensagem('Não há manutenção ativa para vincular a esta nota.');
+    if (_carregandoPedidos || _pedidos.isEmpty) {
+      _mensagem(
+        _erroCarregamento
+            ? 'Não foi possível carregar os pedidos. Verifique a conexão e a configuração do Firebase.'
+            : 'Não há pedidos de serviço ativos para vincular a esta nota.',
+      );
       return;
     }
-    if (_manutencaoSelecionada == null) {
-      _mensagem('Selecione a manutenção relacionada à nota.');
+    if (_pedidoSelecionado == null) {
+      _mensagem('Selecione o pedido de serviço relacionado à nota.');
       return;
     }
     if (_normalizarOs(_osController.text) !=
-        _normalizarOs(_manutencaoSelecionada!.numeroOs)) {
-      _mensagem(
-        'A OS informada precisa corresponder à manutenção selecionada.',
-      );
+        _normalizarOs(_pedidoSelecionado!.numeroOs)) {
+      _mensagem('A OS informada precisa corresponder ao pedido selecionado.');
       return;
     }
     if (_osController.text.trim().isEmpty ||
@@ -126,7 +151,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
       builder: (context) => AlertDialog(
         title: const Text('Confirmar baixa?'),
         content: Text(
-          'A nota será registrada e a OS ${_manutencaoSelecionada!.numeroOs} será marcada como concluída.',
+          'A nota será vinculada ao pedido ${_pedidoSelecionado!.numeroPedido}. A OS só será concluída quando todos os pedidos forem baixados.',
         ),
         actions: [
           TextButton(
@@ -154,20 +179,19 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
         observacao: _observacaoController.text.trim(),
         textoOriginal: widget.nota.textoOriginal,
       );
-      final retornoId = await DatabaseHelper.instance.registrarRetorno(
-        manutencao: _manutencaoSelecionada!,
+      final protocolo = await DatabaseHelper.instance.registrarRetorno(
+        pedido: _pedidoSelecionado!,
         nota: notaConfirmada,
         equipamentoFuncionando: _equipamentoFuncionando!,
         caminhoFoto: widget.caminhoFoto,
       );
       if (!mounted) return;
-      final protocolo =
-          'RET-${DateTime.now().year}-${retornoId.toString().padLeft(4, '0')}';
       await Navigator.of(context).pushReplacement<void, void>(
         MaterialPageRoute<void>(
           builder: (_) => SucessoRetorno(
             protocolo: protocolo,
-            numeroOs: _manutencaoSelecionada!.numeroOs,
+            numeroOs: _pedidoSelecionado!.numeroOs,
+            numeroPedido: _pedidoSelecionado!.numeroPedido,
             cliente: _clienteController.text.trim(),
             equipamento: _equipamentoController.text.trim(),
             servico: _servicoController.text.trim(),
@@ -177,7 +201,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
     } catch (_) {
       if (mounted) {
         _mensagem(
-          'Não foi possível registrar o retorno. A manutenção pode já ter sido baixada.',
+          'Não foi possível registrar a nota. O pedido pode já ter sido baixado ou a conexão com Firebase falhou.',
         );
       }
     } finally {
@@ -279,20 +303,24 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Manutenção relacionada',
+              'Pedido de serviço relacionado',
               style: TextStyle(
                 color: Color(0xFF152536),
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
-            if (_carregandoManutencoes)
+            if (_carregandoPedidos)
               const LinearProgressIndicator()
-            else if (_manutencoes.isEmpty)
-              const Text('Não há manutenções ativas no banco local.')
+            else if (_pedidos.isEmpty)
+              Text(
+                _erroCarregamento
+                    ? 'Não foi possível carregar os pedidos do Firebase.'
+                    : 'Não há pedidos de serviço ativos no Firestore.',
+              )
             else
-              DropdownButtonFormField<Manutencao>(
-                value: _manutencaoSelecionada,
+              DropdownButtonFormField<PedidoServico>(
+                value: _pedidoSelecionado,
                 isExpanded: true,
                 decoration: InputDecoration(
                   filled: true,
@@ -301,22 +329,31 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                hint: const Text('Selecione uma OS'),
-                items: _manutencoes
+                hint: const Text('Selecione o pedido de serviço'),
+                items: _pedidos
                     .map(
-                      (manutencao) => DropdownMenuItem(
-                        value: manutencao,
+                      (pedido) => DropdownMenuItem(
+                        value: pedido,
                         child: Text(
-                          '${manutencao.numeroOs} · ${manutencao.equipamento}',
+                          '${pedido.numeroPedido} · ${pedido.equipamento}',
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     )
                     .toList(),
-                onChanged: (manutencao) {
-                  setState(() => _manutencaoSelecionada = manutencao);
-                  if (manutencao != null) {
-                    _osController.text = manutencao.numeroOs;
+                onChanged: (pedido) {
+                  setState(() => _pedidoSelecionado = pedido);
+                  if (pedido != null) {
+                    _osController.text = pedido.numeroOs;
+                    if (_clienteController.text.trim().isEmpty) {
+                      _clienteController.text = pedido.cliente;
+                    }
+                    if (_equipamentoController.text.trim().isEmpty) {
+                      _equipamentoController.text = pedido.equipamento;
+                    }
+                    if (_servicoController.text.trim().isEmpty) {
+                      _servicoController.text = pedido.servico;
+                    }
                   }
                 },
               ),

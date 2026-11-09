@@ -3,8 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
 
 import '../control/nota_retorno_controller.dart';
 import '../model/nota_retorno.dart';
@@ -50,16 +48,11 @@ class _RegistrarRetornoState extends State<RegistrarRetorno> {
         _fotoPath = foto.path;
       });
 
-      final fotoSalva = await _copiarParaArmazenamento(foto);
-      if (!mounted) return;
-      setState(() => _fotoPath = fotoSalva.path);
-
-      final nota = await _controller.lerNota(fotoSalva.path);
+      final nota = await _controller.lerNota(foto.path);
       if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              ConferenciaNota(nota: nota, caminhoFoto: fotoSalva.path),
+          builder: (_) => ConferenciaNota(nota: nota, caminhoFoto: foto.path),
         ),
       );
     } catch (error) {
@@ -70,17 +63,6 @@ class _RegistrarRetornoState extends State<RegistrarRetorno> {
     } finally {
       if (mounted) setState(() => _processando = false);
     }
-  }
-
-  Future<File> _copiarParaArmazenamento(XFile foto) async {
-    final diretorioBase = await getDatabasesPath();
-    final diretorioFotos = Directory(p.join(diretorioBase, 'notas_retorno'));
-    await diretorioFotos.create(recursive: true);
-    final extensao = p.extension(foto.path).isEmpty
-        ? '.jpg'
-        : p.extension(foto.path);
-    final nome = 'nota_${DateTime.now().millisecondsSinceEpoch}$extensao';
-    return File(foto.path).copy(p.join(diretorioFotos.path, nome));
   }
 
   @override
