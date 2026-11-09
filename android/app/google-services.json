@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "612965225414",
+    "project_id": "bnr1-ca621",
+    "storage_bucket": "bnr1-ca621.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:612965225414:android:a5636a2322728865b498c7",
+        "android_client_info": {
+          "package_name": "com.example.bnr1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDEMupyJgYRH58mJc2FrfN63lIaI52Qzbg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
