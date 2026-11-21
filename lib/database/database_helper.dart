@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 
 import '../model/pedido_servico.dart';
 import '../model/nota_retorno.dart';
@@ -12,7 +9,6 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   static const statusPendente = 'pendente';
   static const statusEmAndamento = 'em_andamento';
@@ -135,7 +131,6 @@ class DatabaseHelper {
     required PedidoServico pedido,
     required NotaRetornoExtraida nota,
     required bool equipamentoFuncionando,
-    required String caminhoFoto,
   }) async {
     final pedidoRef = _ordens
         .doc(pedido.ordemServicoId)
@@ -146,87 +141,59 @@ class DatabaseHelper {
     final ano = DateTime.now().year;
     final contadorRef = _firestore
         .collection('contadores')
-        .doc('retornos_' + ano.toString());
-    final storagePath =
-        'notas_retorno/' +
-        pedido.ordemServicoId +
-        '/' +
-        pedido.id +
-        '/' +
-        DateTime.now().microsecondsSinceEpoch.toString() +
-        '.jpg';
-    final fotoRef = _storage.ref(storagePath);
+        .doc('retornos_$ano');
+    return _firestore.runTransaction<String>((transaction) async {
+      final ordem = await transaction.get(ordemRef);
+      final pedidoSnapshot = await transaction.get(pedidoRef);
+      final retorno = await transaction.get(retornoRef);
+      final contador = await transaction.get(contadorRef);
 
-    try {
-      await fotoRef.putFile(
-        File(caminhoFoto),
-        SettableMetadata(contentType: 'image/jpeg'),
-      );
-      final fotoUrl = await fotoRef.getDownloadURL();
+      if (!ordem.exists || !pedidoSnapshot.exists) {
+        throw StateError('A OS ou o pedido não existe mais.');
+      }
+      if (retorno.exists ||
+          pedidoSnapshot.data()?['status'] == statusConcluida) {
+        throw StateError('Este pedido já possui uma nota de retorno.');
+      }
 
-      return await _firestore.runTransaction<String>((transaction) async {
-        final ordem = await transaction.get(ordemRef);
-        final pedidoSnapshot = await transaction.get(pedidoRef);
-        final retorno = await transaction.get(retornoRef);
-        final contador = await transaction.get(contadorRef);
+      final ordemData = ordem.data()!;
+      final totalPedidos = (ordemData['pedidos_total'] as num?)?.toInt() ?? 1;
+      final concluidos =
+          (ordemData['pedidos_concluidos'] as num?)?.toInt() ?? 0;
+      final novoTotal = concluidos + 1;
+      final ordemConcluida = novoTotal >= totalPedidos;
+      final sequencia = ((contador.data()?['valor'] as num?)?.toInt() ?? 0) + 1;
+      final protocolo = 'RET-$ano-${sequencia.toString().padLeft(4, '0')}';
+      final agora = DateTime.now().toIso8601String();
 
-        if (!ordem.exists || !pedidoSnapshot.exists) {
-          throw StateError('A OS ou o pedido não existe mais.');
-        }
-        if (retorno.exists ||
-            pedidoSnapshot.data()?['status'] == statusConcluida) {
-          throw StateError('Este pedido já possui uma nota de retorno.');
-        }
-
-        final ordemData = ordem.data()!;
-        final totalPedidos = (ordemData['pedidos_total'] as num?)?.toInt() ?? 1;
-        final concluidos =
-            (ordemData['pedidos_concluidos'] as num?)?.toInt() ?? 0;
-        final novoTotal = concluidos + 1;
-        final ordemConcluida = novoTotal >= totalPedidos;
-        final sequencia =
-            ((contador.data()?['valor'] as num?)?.toInt() ?? 0) + 1;
-        final protocolo =
-            'RET-' +
-            ano.toString() +
-            '-' +
-            sequencia.toString().padLeft(4, '0');
-        final agora = DateTime.now().toIso8601String();
-
-        transaction.set(retornoRef, {
-          'protocolo': protocolo,
-          'pedido_id': pedido.id,
-          'numero_pedido': pedido.numeroPedido,
-          'ordem_servico_id': pedido.ordemServicoId,
-          'numero_os': _normalizarOs(nota.numeroOs),
-          'data_retorno': nota.dataRetorno,
-          'cliente': nota.cliente.trim(),
-          'equipamento': nota.equipamento.trim(),
-          'servico': nota.servico.trim(),
-          'situacao_nota': nota.situacao.trim(),
-          'observacao': nota.observacao.trim(),
-          'equipamento_funcionando': equipamentoFuncionando,
-          'foto_url': fotoUrl,
-          'foto_storage_path': storagePath,
-          'texto_ocr': nota.textoOriginal,
-          'data_registro': agora,
-        });
-        transaction.update(pedidoRef, {
-          'status': statusConcluida,
-          'data_conclusao': agora,
-        });
-        transaction.update(ordemRef, {
-          'pedidos_concluidos': novoTotal,
-          'status': ordemConcluida ? statusConcluida : statusEmAndamento,
-          if (ordemConcluida) 'data_conclusao': agora,
-        });
-        transaction.set(contadorRef, {'valor': sequencia});
-        return protocolo;
+      transaction.set(retornoRef, {
+        'protocolo': protocolo,
+        'pedido_id': pedido.id,
+        'numero_pedido': pedido.numeroPedido,
+        'ordem_servico_id': pedido.ordemServicoId,
+        'numero_os': _normalizarOs(nota.numeroOs),
+        'data_retorno': nota.dataRetorno,
+        'cliente': nota.cliente.trim(),
+        'equipamento': nota.equipamento.trim(),
+        'servico': nota.servico.trim(),
+        'situacao_nota': nota.situacao.trim(),
+        'observacao': nota.observacao.trim(),
+        'equipamento_funcionando': equipamentoFuncionando,
+        'texto_ocr': nota.textoOriginal,
+        'data_registro': agora,
       });
-    } catch (_) {
-      await fotoRef.delete().catchError((_) {});
-      rethrow;
-    }
+      transaction.update(pedidoRef, {
+        'status': statusConcluida,
+        'data_conclusao': agora,
+      });
+      transaction.update(ordemRef, {
+        'pedidos_concluidos': novoTotal,
+        'status': ordemConcluida ? statusConcluida : statusEmAndamento,
+        if (ordemConcluida) 'data_conclusao': agora,
+      });
+      transaction.set(contadorRef, {'valor': sequencia});
+      return protocolo;
+    });
   }
 
   String _normalizarOs(String numeroOs) {

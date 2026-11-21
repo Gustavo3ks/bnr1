@@ -16,18 +16,21 @@ class EquipamentosPage extends StatelessWidget {
     body: FutureBuilder<List<PedidoServico>>(
       future: DatabaseHelper.instance.obterPedidosRecentes(limite: 100),
       builder: (context, snapshot) {
-        if (snapshot.hasError)
+        if (snapshot.hasError) {
           return const _Aviso(
             texto: 'Não foi possível carregar os equipamentos.',
           );
-        if (!snapshot.hasData)
+        }
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final unicos = <String, PedidoServico>{};
         for (final item in snapshot.data!) {
           unicos.putIfAbsent(item.equipamento, () => item);
         }
-        if (unicos.isEmpty)
+        if (unicos.isEmpty) {
           return const _Aviso(texto: 'Nenhum equipamento cadastrado.');
+        }
         return ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: unicos.length,
@@ -56,15 +59,18 @@ class PedidosServicoPage extends StatelessWidget {
     body: FutureBuilder<List<PedidoServico>>(
       future: DatabaseHelper.instance.obterPedidosRecentes(limite: 100),
       builder: (context, snapshot) {
-        if (snapshot.hasError)
+        if (snapshot.hasError) {
           return const _Aviso(
             texto: 'Não foi possível carregar os pedidos de serviço.',
           );
-        if (!snapshot.hasData)
+        }
+        if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
+        }
         final itens = snapshot.data!;
-        if (itens.isEmpty)
+        if (itens.isEmpty) {
           return const _Aviso(texto: 'Nenhum pedido de serviço registrado.');
+        }
         return ListView.separated(
           padding: const EdgeInsets.all(20),
           itemCount: itens.length,

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../control/nota_retorno_controller.dart';
-import '../model/nota_retorno.dart';
 import 'conferencia_nota.dart';
 
 class RegistrarRetorno extends StatefulWidget {

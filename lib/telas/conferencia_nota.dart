@@ -183,7 +183,6 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
         pedido: _pedidoSelecionado!,
         nota: notaConfirmada,
         equipamentoFuncionando: _equipamentoFuncionando!,
-        caminhoFoto: widget.caminhoFoto,
       );
       if (!mounted) return;
       await Navigator.of(context).pushReplacement<void, void>(
@@ -320,7 +319,7 @@ class _ConferenciaNotaState extends State<ConferenciaNota> {
               )
             else
               DropdownButtonFormField<PedidoServico>(
-                value: _pedidoSelecionado,
+                initialValue: _pedidoSelecionado,
                 isExpanded: true,
                 decoration: InputDecoration(
                   filled: true,
