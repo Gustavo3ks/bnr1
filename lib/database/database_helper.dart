@@ -56,6 +56,111 @@ class DatabaseHelper {
     });
   }
 
+  Future<PedidoServico> cadastrarEquipamentoEManutencao({
+    required String cliente,
+    required String equipamento,
+    required String modelo,
+    required String numeroSerie,
+    required String localInstalacao,
+    required String servico,
+    required String prioridade,
+    String? equipamentoId,
+  }) async {
+    final agora = DateTime.now();
+    final ano = agora.year;
+    final equipamentoRef = equipamentoId == null
+        ? _firestore.collection('equipamentos').doc()
+        : _firestore.collection('equipamentos').doc(equipamentoId);
+    late DocumentReference<Map<String, dynamic>> pedidoRef;
+    final contadorOsRef = _firestore
+        .collection('contadores')
+        .doc('ordens_$ano');
+    final contadorPedidoRef = _firestore
+        .collection('contadores')
+        .doc('pedidos_$ano');
+
+    late String numeroOs;
+    late String numeroPedido;
+    final dataCriacao = agora.toIso8601String();
+
+    await _firestore.runTransaction<void>((transaction) async {
+      final contadorOs = await transaction.get(contadorOsRef);
+      final contadorPedido = await transaction.get(contadorPedidoRef);
+      final sequenciaOs =
+          ((contadorOs.data()?['valor'] as num?)?.toInt() ?? 0) + 1;
+      final sequenciaPedido =
+          ((contadorPedido.data()?['valor'] as num?)?.toInt() ?? 0) + 1;
+      numeroOs = '$ano-${sequenciaOs.toString().padLeft(4, '0')}';
+      numeroPedido = 'SOL-$ano-${sequenciaPedido.toString().padLeft(4, '0')}';
+      final ordemComNumero = _ordens.doc(_normalizarOs(numeroOs));
+      final ordemExistente = await transaction.get(ordemComNumero);
+      final equipamentoExistente = equipamentoId == null
+          ? null
+          : await transaction.get(equipamentoRef);
+      if (ordemExistente.exists) {
+        throw StateError('O número da OS já está em uso. Tente novamente.');
+      }
+      if (equipamentoId != null && !(equipamentoExistente?.exists ?? false)) {
+        throw StateError('O equipamento selecionado não existe mais.');
+      }
+      pedidoRef = ordemComNumero.collection('pedidos').doc();
+
+      if (equipamentoId == null) {
+        transaction.set(equipamentoRef, {
+          'cliente': cliente.trim(),
+          'nome': equipamento.trim(),
+          'modelo': modelo.trim(),
+          'numero_serie': numeroSerie.trim(),
+          'local_instalacao': localInstalacao.trim(),
+          'numero_os': numeroOs,
+          'data_criacao': dataCriacao,
+        });
+      } else {
+        transaction.update(equipamentoRef, {
+          'ultima_os': numeroOs,
+          'ultima_manutencao_data': dataCriacao,
+        });
+      }
+      transaction.set(ordemComNumero, {
+        'numero_os': numeroOs,
+        'status': statusPendente,
+        'data_criacao': dataCriacao,
+        'pedidos_total': 1,
+        'pedidos_concluidos': 0,
+      });
+      transaction.set(pedidoRef, {
+        'numero_pedido': numeroPedido,
+        'numero_os': numeroOs,
+        'ordem_servico_id': ordemComNumero.id,
+        'equipamento_id': equipamentoRef.id,
+        'cliente': cliente.trim(),
+        'equipamento': equipamento.trim(),
+        'modelo': modelo.trim(),
+        'numero_serie': numeroSerie.trim(),
+        'local_instalacao': localInstalacao.trim(),
+        'servico': servico.trim(),
+        'prioridade': prioridade,
+        'status': statusPendente,
+        'data_criacao': dataCriacao,
+      });
+      transaction.set(contadorOsRef, {'valor': sequenciaOs});
+      transaction.set(contadorPedidoRef, {'valor': sequenciaPedido});
+    });
+
+    return PedidoServico(
+      id: pedidoRef.id,
+      ordemServicoId: _normalizarOs(numeroOs),
+      numeroPedido: numeroPedido,
+      equipamentoId: equipamentoRef.id,
+      numeroOs: numeroOs,
+      cliente: cliente.trim(),
+      equipamento: equipamento.trim(),
+      servico: servico.trim(),
+      status: statusPendente,
+      dataCriacao: dataCriacao,
+    );
+  }
+
   Future<String> adicionarPedido({
     required String numeroOs,
     required String numeroPedido,
@@ -86,6 +191,44 @@ class DatabaseHelper {
       });
     });
     return pedidoRef.id;
+  }
+
+  Future<List<Map<String, dynamic>>> obterEquipamentos() async {
+    final snapshot = await _firestore.collection('equipamentos').get();
+    final itens = <String, Map<String, dynamic>>{};
+    for (final doc in snapshot.docs) {
+      final dados = doc.data();
+      itens[doc.id] = {'id': doc.id, ...dados};
+    }
+
+    // Registros antigos ainda não têm documento próprio de equipamento.
+    final pedidos = await obterPedidosRecentes(limite: 1000);
+    for (final pedido in pedidos) {
+      if (pedido.equipamentoId != null && pedido.equipamentoId!.isNotEmpty) {
+        continue;
+      }
+      final chave =
+          'legado_${pedido.cliente.trim().toLowerCase()}_${pedido.equipamento.trim().toLowerCase()}';
+      itens.putIfAbsent(
+        chave,
+        () => {
+          'id': pedido.id,
+          'cliente': pedido.cliente,
+          'nome': pedido.equipamento,
+          'modelo': '',
+          'numero_serie': '',
+          'local_instalacao': '',
+          'numero_os': pedido.numeroOs,
+          'status': pedido.status,
+          'legado': true,
+        },
+      );
+    }
+
+    return itens.values.toList()..sort(
+      (a, b) =>
+          (a['nome'] as String? ?? '').compareTo(b['nome'] as String? ?? ''),
+    );
   }
 
   Future<List<PedidoServico>> obterPedidosAtivos() async {

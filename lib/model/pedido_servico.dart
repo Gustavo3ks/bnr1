@@ -12,6 +12,8 @@ class PedidoServico {
     required this.status,
     required this.dataCriacao,
     this.dataConclusao,
+    this.prioridade = 'normal',
+    this.equipamentoId,
   });
 
   final String id;
@@ -24,6 +26,8 @@ class PedidoServico {
   final String status;
   final String dataCriacao;
   final String? dataConclusao;
+  final String prioridade;
+  final String? equipamentoId;
 
   String get statusLabel {
     switch (status) {
@@ -54,6 +58,8 @@ class PedidoServico {
       status: (data['status'] as String?) ?? 'pendente',
       dataCriacao: (data['data_criacao'] as String?) ?? '',
       dataConclusao: data['data_conclusao'] as String?,
+      prioridade: (data['prioridade'] as String?) ?? 'normal',
+      equipamentoId: data['equipamento_id'] as String?,
     );
   }
 }

@@ -88,7 +88,7 @@ class _HomeState extends State<Home> {
   Widget _paginaSelecionada() {
     switch (_selectedIndex) {
       case 1:
-        return const EquipamentosPage();
+        return EquipamentosPage(onCadastroConcluido: _carregarPainel);
       case 2:
         return const PedidosServicoPage();
       default:
@@ -250,7 +250,7 @@ class _ResumoPedidoServico extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Pedido ${pedido.numeroPedido} · OS ${pedido.numeroOs} · ${pedido.statusLabel}',
+                  'Pedido ${pedido.numeroPedido} · OS ${pedido.numeroOs} · ${pedido.statusLabel} · Prioridade ${pedido.prioridade}',
                   style: const TextStyle(color: _muted, fontSize: 12),
                 ),
               ],
